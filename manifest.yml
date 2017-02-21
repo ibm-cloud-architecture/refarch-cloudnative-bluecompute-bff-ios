@@ -1,0 +1,8 @@
+applications:
+- name: refarch-cloudnative-bluecompute-bff-ios
+  memory: 256M
+  instances: 1
+  random-route: true
+  disk_quota: 1024M
+  command: refarch-cloudnative-bluecompute-bff-ios
+  buildpack: swift_buildpack
