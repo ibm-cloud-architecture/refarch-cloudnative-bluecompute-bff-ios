@@ -1,0 +1,5 @@
+export region="DALLAS"
+export container="bluecompute"
+export projectId=""
+export userId=""
+export password=""

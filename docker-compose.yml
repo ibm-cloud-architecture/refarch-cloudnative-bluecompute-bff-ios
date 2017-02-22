@@ -1,0 +1,7 @@
+app:
+  image: ibmcom/swift-ubuntu
+  ports:
+    - "8090:8090"
+  volumes:
+    - .:/root/bluecompute-bff-ios
+  command: bash -c "cd /root/bluecompute-bff-ios && swift build --clean && swift build && ./.build/debug/bluecompute-bff-ios"
