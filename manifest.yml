@@ -1,8 +1,15 @@
 applications:
 - name: bluecompute-bff-ios
-  memory: 256M
+  memory: 1024M
   instances: 1
   random-route: true
   disk_quota: 1024M
   command: bluecompute-bff-ios
   buildpack: swift_buildpack
+  command: "./.build/debug/bluecompute-bff-ios"
+  env:
+    region: "DALLAS"
+    container: "bluecompute"
+    projectId: "bcfa859b091e4d05b363bc4d488719a5"
+    userId: "8c5a086e2e4c4d429eb8a30ab0f8f234"
+    password: "JoUCk2mU=*?0c4TZ"
