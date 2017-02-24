@@ -1,1 +1,1 @@
-web: .build/debug/bluecompute-bff-ios
+web: bluecompute-bff-ios

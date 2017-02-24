@@ -2,73 +2,62 @@ import Foundation
 import Kitura
 import SwiftyJSON
 import LoggerAPI
-import CloudFoundryEnv
 import BluemixObjectStorage
 
 public class Controller {
     
     let router: Router
-    let cfEnv: AppEnv
     var objstorage : ObjectStorage!
     var container : ObjectStorageContainer?
     
     var containerName : String {
         get {
-            return ProcessInfo.processInfo.environment["container"] ?? "bluecompute"
+            return Controller.getVar("container") ?? "bluecompute"
         }
     }
     
-    var port: Int {
+    var port: String {
         get {
-            return cfEnv.isLocal ? 8090 : cfEnv.port
-        }
-    }
-    
-    var url: String {
-        get {
-            return cfEnv.isLocal ? "http://localhost" : cfEnv.url
+            return Controller.getVar("PORT") ?? "8090"
         }
     }
     
     var region : String {
         get {
-            let reg = Controller.getEnvVariable(envVar: "region", cfEnv: cfEnv).uppercased()
-            return reg.isEmpty == true ? "DALLAS" : reg
+            return Controller.getVar("region")?.uppercased() ?? "DALLAS"
         }
     }
     
     var projectId : String {
         get {
-            return Controller.getEnvVariable(envVar: "projectId", cfEnv: cfEnv)
+            return Controller.getVar("projectId") ?? ""
         }
     }
     
     var userId : String {
         get {
-            return Controller.getEnvVariable(envVar: "userId", cfEnv: cfEnv)
+            return Controller.getVar("userId") ?? ""
         }
     }
     
     var password : String {
         get {
-            return Controller.getEnvVariable(envVar: "password", cfEnv: cfEnv)
+            return Controller.getVar("password") ?? ""
         }
     }
     
-    static func getEnvVariable(envVar: String, cfEnv: AppEnv) -> String {
-        if cfEnv.isLocal {
-            Log.info("Getting \(envVar) localhost/docker")
-            return ProcessInfo.processInfo.environment[envVar] ?? ""
-        } else {
-            Log.info("Getting \(envVar) from VCAP_SERVICES")
-            let json: [String:Any] = cfEnv.getServiceCreds(spec: "Object-Storage")!
-            return json[envVar] as! String
-        }
+    static func getVar(_ envVar: String) -> String? {
+        let value:String? = ProcessInfo.processInfo.environment[envVar]
+        Log.info("\(envVar) = \(value)")
+        return value
     }
     
     init() throws {
-        cfEnv = try CloudFoundryEnv.getAppEnv()
-        
+        Log.info("\n\n\n Environment variables:")
+        for (key, value) in ProcessInfo.processInfo.environment {
+            Log.info("\(key): \(value)")
+        }
+        Log.info("\n\n\n")
         // All web apps need a Router instance to define routes
         router = Router()
         
@@ -130,5 +119,4 @@ public class Controller {
             }
         }
     }
-    
 }

@@ -12,9 +12,6 @@ let package = Package(
       // Latest is 1.6.0
       .Package(url: "https://github.com/IBM-Swift/HeliumLogger.git", majorVersion: 1, minor: 1),
       
-      // Latest is 2.0.2
-      .Package(url: "https://github.com/IBM-Swift/Swift-cfenv.git", majorVersion: 2),
-      
       // Using latest
       .Package(url: "https://github.com/ibm-bluemix-mobile-services/bluemix-objectstorage-serversdk-swift.git", majorVersion: 0, minor: 6),
     ],

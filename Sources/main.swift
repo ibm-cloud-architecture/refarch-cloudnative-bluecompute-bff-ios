@@ -2,16 +2,15 @@ import Foundation
 import Kitura
 import LoggerAPI
 import HeliumLogger
-import CloudFoundryEnv
 
 do {
     // HeliumLogger disables all buffering on stdout
     HeliumLogger.use(LoggerMessageType.info)
     let controller = try Controller()
-    Log.info("Server will be started on port '\(controller.url):\(controller.port)'.")
+    Log.info("Server will be started on port '\(controller.port)'.")
 
     // Start Kitura-Starter server
-    Kitura.addHTTPServer(onPort: controller.port, with: controller.router)
+    Kitura.addHTTPServer(onPort: Int(controller.port)!, with: controller.router)
     Kitura.run()
 
 } catch let error {
