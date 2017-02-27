@@ -56,9 +56,6 @@ public class Controller {
         // All web apps need a Router instance to define routes
         router = Router()
         
-        // Serve static content from "public"
-        router.all("/static", middleware: StaticFileServer())
-        
         // Set up the image route
         router.get("/image/:name", handler: getImage)
         
