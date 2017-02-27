@@ -53,11 +53,6 @@ public class Controller {
     }
     
     init() throws {
-        Log.info("\n\n\n Environment variables:")
-        for (key, value) in ProcessInfo.processInfo.environment {
-            Log.info("\(key): \(value)")
-        }
-        Log.info("\n\n\n")
         // All web apps need a Router instance to define routes
         router = Router()
         

@@ -13,4 +13,4 @@ ADD .swift-version /root/bluecompute-bff-ios
 RUN cd /root/bluecompute-bff-ios && swift build
 
 USER root
-CMD [ "/root/bluecompute-bff-ios/.build/debug/bluecompute-bff-ios" ]
+CMD [ "sh", "-c", "cd /root/bluecompute-bff-ios && .build/debug/bluecompute-bff-ios" ]
