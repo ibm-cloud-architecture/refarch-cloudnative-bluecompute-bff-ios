@@ -9,3 +9,6 @@ applications:
   env:
     region: "DALLAS"
     container: "bluecompute"
+    projectId: ""
+    userId: ""
+    password: ""
