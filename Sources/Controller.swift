@@ -47,18 +47,41 @@ public class Controller {
     }
     
     static func getVar(_ envVar: String) -> String? {
-        let value:String? = ProcessInfo.processInfo.environment[envVar]
-        Log.info("\(envVar) = \(value)")
+        var value:String? = nil
+        Log.info("Getting var \(envVar)")
+
+        if ((envVar != "projectId" && envVar != "userId" && envVar != "password") ||
+            ProcessInfo.processInfo.environment["VCAP_SERVICES"] == nil) {
+            Log.info("Getting optional var")
+            value = ProcessInfo.processInfo.environment[envVar]
+
+        } else {
+            let json = JSON.parse(string: ProcessInfo.processInfo.environment["VCAP_SERVICES"]!)
+            Log.info("VCAP json: \(json)")
+            if let creds = json["Object-Storage"][0]["credentials"].dictionary {
+                value = creds[envVar]?.string
+            } else {
+                Log.info("No VCAP_SERVICES or could not get credentials")
+                value = ProcessInfo.processInfo.environment[envVar]
+            }
+        }
+
+        Log.info("\(envVar) = \(value)\n\n")
         return value
     }
-    
+
     init() throws {
+        Log.info("\n\n\n Environment variables:")
+        for (key, value) in ProcessInfo.processInfo.environment {
+            Log.info("\(key): \(value)")
+        }
+        Log.info("\n\n\n")
         // All web apps need a Router instance to define routes
         router = Router()
-        
+
         // Set up the image route
         router.get("/image/:name", handler: getImage)
-        
+
         // Initialize Object Storage
         objstorage = ObjectStorage(projectId:projectId)
         objstorage.connect( userId: userId,
