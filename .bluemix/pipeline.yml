@@ -4,7 +4,7 @@ stages:
   inputs:
   - service: ${REPO}
     type: git
-    branch: ${BRANCH}
+    branch: integration
   triggers:
   - type: commit
   jobs:
@@ -20,20 +20,20 @@ stages:
   triggers:
   - type: stage
   properties:
+  - name: CF_APP_NAME
+    value: ${NAME}
+    type: text
   - name: CF_APP_DOMAIN
     value: ${DOMAIN}
     type: text
   - name: APP_URL
     value: undefined
     type: text
-  - name: NAME
-    value: ${NAME}
-    type: text
   - name: OS_CONTAINER
-    value: ${OS_CONTAINER}
+    value: bluecompute
     type: text
   - name: OS_REGION
-    value: ${OS_REGION}
+    value: DALLAS
     type: text
   jobs:
   - name: Deploy
@@ -42,13 +42,14 @@ stages:
       region_id: ${REGION}
       organization: ${ORG}
       space: ${SPACE}
+      application: ${NAME}
     script: |-
       #!/bin/bash
       set -x
       set +e
 
+      # download jq
       install_jq() {
-        # download jq
         if [ ! -f ./jq ]; then
            wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
            mv jq-linux64 jq
@@ -56,8 +57,8 @@ stages:
         fi
       }
 
+      # create objectstorage service and key
       provision_os() {
-        # create objectstorage service and key
         cf services | grep Object-Storage
         if [ $? -eq 1 ]; then
             cf cs Object-Storage Free cloudnative-objstore
@@ -91,50 +92,50 @@ stages:
         sudo pip install --upgrade python-swiftclient
         sudo pip install --upgrade python-keystoneclient
         # upload image folder to swift container
-        swift post ${OS_CONTAINER}
-        swift upload --changed --skip-identical ${OS_CONTAINER} image
-        swift list ${OS_CONTAINER}
+        swift post "${CF_APP_NAME}"
+        swift upload --changed --skip-identical "${CF_APP_NAME}" image
+        swift list "${CF_APP_NAME}"
 
         export OS_SERVICE=objstorage_svc
       }
 
       push_app() {
         # create cf app
-        cf push $NAME -n $NAME -d "${CF_APP_DOMAIN}" --no-start
-        cf set-env $NAME region "${OS_REGION}"
-        cf set-env $NAME container "${OS_CONTAINER}"
+        cf push "${CF_APP_NAME}" -n "${CF_APP_NAME}" -d "${CF_APP_DOMAIN}" --no-start
+        cf set-env "${CF_APP_NAME}" region "${OS_REGION}"
+        cf set-env "${CF_APP_NAME}" container "${OS_CONTAINER}"
         provision_os
-        cf bind-service $NAME "${OS_SERVICE}"
-        cf start $NAME
+        cf bind-service "${CF_APP_NAME}" "${OS_SERVICE}"
+        cf start "${CF_APP_NAME}"
       }
 
       # Start
       install_jq
 
-      if ! cf app $NAME; then
+      if ! cf app "${CF_APP_NAME}"; then
         push_app
       else
-        OLD_CF_APP=$NAME-OLD-$(date +"%s")
+        OLD_CF_APP="${CF_APP_NAME}"-OLD-$(date +"%s")
         rollback() {
           set +e  
-          if cf app $OLD_CF_APP; then
-            cf logs $NAME --recent
-            cf delete $NAME -f
-            cf rename $OLD_CF_APP $NAME
+          if cf app "$OLD_CF_APP"; then
+            cf logs "${CF_APP_NAME}" --recent
+            cf delete "${CF_APP_NAME}" -f
+            cf rename "$OLD_CF_APP" "${CF_APP_NAME}"
           fi
           exit 1
         }
         set -e
         trap rollback ERR
-        cf rename $NAME $OLD_CF_APP
+        cf rename "${CF_APP_NAME}" "$OLD_CF_APP"
         push_app
-        cf delete $OLD_CF_APP -f
+        cf delete "$OLD_CF_APP" -f
       fi
       # Export app name and URL for use in later Pipeline jobs
-      export CF_APP_NAME=$NAME
-      export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
+      export CF_APP_NAME="${CF_APP_NAME}"
+      export APP_URL=http://$(cf app "${CF_APP_NAME}" | grep urls: | awk '{print $2}')
       # View logs
-      cf logs $NAME --recent
+      cf logs "${CF_APP_NAME}" --recent
 
 hooks:
 - enabled: true
