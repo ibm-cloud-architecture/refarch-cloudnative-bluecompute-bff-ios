@@ -96,7 +96,7 @@ stages:
         swift upload --changed --skip-identical "${CF_APP_NAME}" image
         swift list "${CF_APP_NAME}"
 
-        export OS_SERVICE=objstorage_svc
+        export OS_SERVICE="${objstorage_svc}"
       }
 
       push_app() {
