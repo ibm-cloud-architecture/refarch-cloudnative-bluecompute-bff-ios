@@ -1,0 +1,45 @@
+---
+name: "BlueCompute iOS BFF Microservice Toolchain"
+description: "BlueCompute iOS BFF Microservice application"
+version: 0.1
+required:
+ - deploy
+
+git-bluecompute-bff-ios:
+  service_id: githubpublic
+  parameters:
+    repo_name: "refarch-cloudnative-bluecompute-bff-ios-{{name}}"
+    repo_url: "https://github.com/ibm-cloud-architecture/refarch-cloudnative-bluecompute-bff-ios"
+    type: clone
+    has_issues: true
+
+pipeline-bluecompute-bff-ios:
+  service_id: pipeline
+  hidden: [form, description]
+  parameters:
+    name: "bluecompute-bff-ios"
+    ui-pipeline: true
+    services: ["git-bluecompute-bff-ios"]
+    configuration:
+      content: $file(pipeline.yml)
+      env:
+        BRANCH: "{{deploy.parameters.repo-branch}}"
+        DOMAIN: "{{deploy.parameters.route-domain}}"
+        NAME: "{{pipeline-bluecompute-bff-ios.parameters.name}}-{{deploy.parameters.deploy-space}}"
+        ORG: "{{deploy.parameters.deploy-org}}"
+        OS-CONTAINER: "{{deploy.parameters.os-container}}"
+        REGION: "{{deploy.parameters.deploy-region}}"
+        REPO: "git-bluecompute-bff-ios"
+        SPACE: "{{deploy.parameters.deploy-space}}"
+      execute: false
+
+deploy:
+  schema: deploy.json
+  service-category: pipeline
+  parameters:
+    deploy-org: "{{organization}}"
+    deploy-region: "{{region}}"
+    deploy-space: "{{space}}"
+    repo-branch: "integration"
+    route-domain: "mybluemix.net"
+    os-container: "bluecompute"

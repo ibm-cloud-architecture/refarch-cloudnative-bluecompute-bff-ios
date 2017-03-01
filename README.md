@@ -23,6 +23,20 @@ The Swift code is located in the `Sources` folder.
   - **userId:** Object Storage user.
   - **password:** Object Storage password.
 4. Keep those credential handy as they will be needed throughout the rest of this document.
+5. **Create an Object Storage container. Bluemix Object Storage uses `container` as unit of managing content.**
+  - Click the "Manage" tab, then click the `Select Action` dropdown, and choose `Create Container`.
+  - Name the Container `bluecompute`.
+6. **Upload the application images into the container.**
+  - From your compute file explore (or Finder in Mac), locate the `image` folder. 
+  - Drag and drop all the images to the Browser Object Storage `bluecompute` container. 
+    - Alternatively, you can click add file actions to load images.
+
+## Deploy BlueCompute iOS BFF using DevOps Toolchain
+You can use the following button to deploy the BlueCompute iOS BFF to Bluemix, or you can follow the manual instructions in the following sections. If you decide on the toolchain button, you have to fulfill the following pre-requisites:
+- **[Provision](#pre-requisites) an Object Storage service instance in your Bluemix Space**.
+  - The toolchain will automatically pick up the `Object Storage` credentials.
+
+[![Create BlueCompute Deployment Toolchain](https://console.ng.bluemix.net/devops/graphics/create_toolchain_button.png)](https://console.ng.bluemix.net/devops/setup/deploy?repository=https://github.com/ibm-cloud-architecture/refarch-cloudnative-bluecompute-bff-ios.git)
 
 ## Run the application locally:
 1. If not already done, provision an instance of [Object Storage](#pre-requisites).
@@ -46,7 +60,6 @@ The Swift code is located in the `Sources` folder.
 5. **Validate the local application:**
   - [http://localhost:8090/image/collator.jpg](http://localhost:8090/image/collator.jpg)
 
-
 ## Deploy to Bluemix Cloud Foundry runtime:
 1. If not already done, provision an instance of [Object Storage](#pre-requisites).
 2. **Open `manifest.yml` and enter the following `Object Storage` credentials collected in the [Pre-requisites](#pre-requisites):**
@@ -57,8 +70,15 @@ The Swift code is located in the `Sources` folder.
     ```
     # cf push
     ```
-  
-4. **Validate the Cloud Foundry application:**
+
+4. **Alternatively, you can bind existing `Object Storage` instance directly to cf app:**
+    ```
+    cf push bluecompute-bff-ios -n bluecompute-bff-ios -d "mybluemix.net" --no-start
+    cf bind-service bluecompute-bff-ios objectstorage-instance-name
+    cf start bluecompute-bff-ios
+    ```
+
+5. **Validate the Cloud Foundry application:**
   - [https://bluecompute-bff-ios.mybluemix.net/image/collator.jpg](https://bluecompute-bff-ios.mybluemix.net/image/collator.jpg)
 
 ## Run application in local docker container

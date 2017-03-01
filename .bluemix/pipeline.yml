@@ -1,0 +1,143 @@
+---
+stages:
+- name: BUILD
+  inputs:
+  - service: ${REPO}
+    type: git
+    branch: ${BRANCH}
+  triggers:
+  - type: commit
+  jobs:
+  - name: Build
+    type: builder
+    artifact_dir: ''
+- name: DEPLOY
+  inputs:
+  - type: job
+    stage: BUILD
+    job: Build
+    dir_name: null
+  triggers:
+  - type: stage
+  properties:
+  - name: CF_APP
+    value: ${NAME}
+    type: text
+  - name: CF_APP_DOMAIN
+    value: ${DOMAIN}
+    type: text
+  - name: CF_APP_NAME
+    value: undefined
+    type: text
+  - name: APP_URL
+    value: undefined
+    type: text
+  - name: OS_CONTAINER
+    value: ${OS-CONTAINER}
+    type: text
+  jobs:
+  - name: Deploy
+    type: deployer
+    target:
+      region_id: ${REGION}
+      organization: ${ORG}
+      space: ${SPACE}
+    script: |-
+      #!/bin/bash
+      set -x
+      set +e
+
+      install_jq() {
+        # download jq
+        if [ ! -f ./jq ]; then
+           wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+           mv jq-linux64 jq
+           chmod u+x jq
+        fi
+      }
+
+      provision_os() {
+        # create objectstorage service and key
+        cf services | grep Object-Storage
+        if [ $? -eq 1 ]; then
+            cf cs Object-Storage Free cloudnative-objstore
+            for i in {1..5}
+            do
+                status=$(cf service "${objstorage_svc}"|grep -i 'status:'|awk '{print $NF}')
+                case $status in
+                    "progress") sleep 10;;
+                    "succeeded") break;;
+                    *) sleep 10;;
+                 esac
+            done
+        fi
+        objstorage_svc=$(cf services | grep Object-Storage | sed "s/\(.*\)\(Object-Storage\)\(.*\)/\1/" | sed 's/^[ \t]*//;s/[ \t]*$//')
+        cf service-keys "${objstorage_svc}" | grep "No service key for service instance"
+        [ $? -eq 0 ] && cf csk "${objstorage_svc}" "${objstorage_svc}-admin1"
+        objstorage_key_name=$(cf service-keys "${objstorage_svc}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//')
+        objstorage_keys=$(cf service-key "${objstorage_svc}" "${objstorage_key_name}" | grep -v "Getting key ")
+        # set env for swift client
+        export OS_REGION_NAME=$(echo "${objstorage_keys}" | ./jq '.region' | sed 's/"//g')
+        export OS_PROJECT_ID=$(echo "${objstorage_keys}" | ./jq '.projectId' | sed 's/"//g')
+        export OS_USER_ID=$(echo "${objstorage_keys}" | ./jq '.userId' | sed 's/"//g')
+        export OS_PASSWORD=$(echo "${objstorage_keys}" | ./jq '.password' | sed 's/"//g')
+        export OS_AUTH_URL=$(echo "${objstorage_keys}" | ./jq '.auth_url' | sed 's/"//g')/v3
+        export OS_AUTH_VERSION=3
+        export OS_IDENTITY_API_VERSION=3
+        # install swift client
+        sudo apt-get update
+        sudo apt-get upgrade -y
+        sudo apt-get install -y python-dev
+        sudo pip install --upgrade python-swiftclient
+        sudo pip install --upgrade python-keystoneclient
+        # upload image folder to swift container
+        swift post ${OS_CONTAINER}
+        swift upload --changed --skip-identical ${OS_CONTAINER} image
+        swift list ${OS_CONTAINER}
+
+        export OS_SERVICE=objstorage_svc
+      }
+
+      push_app() {
+        # create cf app
+        cf push "${CF_APP}" -n "${CF_APP}" -d "${CF_APP_DOMAIN}" --no-start
+        cf set-env "${CF_APP}" region "${OS_REGION_NAME}"
+        cf set-env "${CF_APP}" container "${OS_CONTAINER}"
+        provision_os
+        cf bind-service "${CF_APP}" "${OS_SERVICE}"
+        cf start "${CF_APP}"
+      }
+
+      # Start
+      install_jq
+
+      if ! cf app $CF_APP; then  
+        push_app
+      else
+        OLD_CF_APP=${CF_APP}-OLD-$(date +"%s")
+        rollback() {
+          set +e  
+          if cf app $OLD_CF_APP; then
+            cf logs $CF_APP --recent
+            cf delete $CF_APP -f
+            cf rename $OLD_CF_APP $CF_APP
+          fi
+          exit 1
+        }
+        set -e
+        trap rollback ERR
+        cf rename $CF_APP $OLD_CF_APP
+        push_app
+        cf delete $OLD_CF_APP -f
+      fi
+      # Export app name and URL for use in later Pipeline jobs
+      export CF_APP_NAME="$CF_APP"
+      export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
+      # View logs
+      cf logs "${CF_APP}" --recent
+
+hooks:
+- enabled: true
+  label: null
+  ssl_enabled: false
+  url: https://devops-api.ng.bluemix.net/v1/messaging/webhook/publish
