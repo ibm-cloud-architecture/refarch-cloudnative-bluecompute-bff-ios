@@ -20,14 +20,8 @@ stages:
   triggers:
   - type: stage
   properties:
-  - name: NAME
-    value: undefined
-    type: text
   - name: CF_APP_DOMAIN
     value: ${DOMAIN}
-    type: text
-  - name: CF_APP_NAME
-    value: undefined
     type: text
   - name: APP_URL
     value: undefined
@@ -36,7 +30,10 @@ stages:
     value: ${NAME}
     type: text
   - name: OS_CONTAINER
-    value: ${OS-CONTAINER}
+    value: ${OS_CONTAINER}
+    type: text
+  - name: OS_REGION
+    value: ${OS_REGION}
     type: text
   jobs:
   - name: Deploy
@@ -103,12 +100,12 @@ stages:
 
       push_app() {
         # create cf app
-        cf push "${NAME}" -n "${NAME}" -d "${CF_APP_DOMAIN}" --no-start
-        cf set-env "${NAME}" region "${OS_REGION_NAME}"
-        cf set-env "${NAME}" container "${OS_CONTAINER}"
+        cf push $NAME -n $NAME -d "${CF_APP_DOMAIN}" --no-start
+        cf set-env $NAME region "${OS_REGION}"
+        cf set-env $NAME container "${OS_CONTAINER}"
         provision_os
-        cf bind-service "${NAME}" "${OS_SERVICE}"
-        cf start "${NAME}"
+        cf bind-service $NAME "${OS_SERVICE}"
+        cf start $NAME
       }
 
       # Start
@@ -117,7 +114,7 @@ stages:
       if ! cf app $NAME; then
         push_app
       else
-        OLD_CF_APP=${NAME}-OLD-$(date +"%s")
+        OLD_CF_APP=$NAME-OLD-$(date +"%s")
         rollback() {
           set +e  
           if cf app $OLD_CF_APP; then
@@ -134,10 +131,10 @@ stages:
         cf delete $OLD_CF_APP -f
       fi
       # Export app name and URL for use in later Pipeline jobs
-      export CF_APP_NAME="$NAME"
+      export CF_APP_NAME=$NAME
       export APP_URL=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
       # View logs
-      cf logs "${NAME}" --recent
+      cf logs $NAME --recent
 
 hooks:
 - enabled: true
