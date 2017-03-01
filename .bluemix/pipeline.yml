@@ -92,9 +92,9 @@ stages:
         sudo pip install --upgrade python-swiftclient
         sudo pip install --upgrade python-keystoneclient
         # upload image folder to swift container
-        swift post "${CF_APP_NAME}"
-        swift upload --changed --skip-identical "${CF_APP_NAME}" image
-        swift list "${CF_APP_NAME}"
+        swift post "${OS_CONTAINER}"
+        swift upload --changed --skip-identical "${OS_CONTAINER}" image
+        swift list "${OS_CONTAINER}"
 
         export OS_SERVICE="${objstorage_svc}"
       }
