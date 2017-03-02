@@ -73,8 +73,10 @@ stages:
             done
         fi
         objstorage_svc=$(cf services | grep Object-Storage | sed "s/\(.*\)\(Object-Storage\)\(.*\)/\1/" | sed 's/^[ \t]*//;s/[ \t]*$//')
+        set +e
         cf service-keys "${objstorage_svc}" | grep "No service key for service instance"
         [ $? -eq 0 ] && cf csk "${objstorage_svc}" "${objstorage_svc}-admin1"
+        set -e
         objstorage_key_name=$(cf service-keys "${objstorage_svc}" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//')
         objstorage_keys=$(cf service-key "${objstorage_svc}" "${objstorage_key_name}" | grep -v "Getting key ")
         # set env for swift client
